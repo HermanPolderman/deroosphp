@@ -1,14 +1,18 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 
-
 define('APPLICATION_NAME', 'Gidsen de Roos');
+define('CALENDAR_ID_MOLEN', '4rcgbukfq0mlsctmsovrvs6mbk@group.calendar.google.com');
+define('CALENDAR_ID_GIDSEN', '4sm976uledkcg9id60sh0v599c@group.calendar.google.com');
+define('CALENDAR_ID_MOLENAARS', 'btc2lluuat1vsqhrdv042g3g6o@group.calendar.google.com');
+
 define('CREDENTIALS_PATH', __DIR__ . '/calendar-php-quickstart.json');
 define('CLIENT_SECRET_PATH', __DIR__ . '/client_secret.json');
+
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/calendar-php-quickstart.json
 define('SCOPES', implode(' ', array(
-  Google_Service_Calendar::CALENDAR_READONLY)
+  Google_Service_Calendar::CALENDAR)
 ));
 
 if (php_sapi_name() != 'cli') {
@@ -70,30 +74,53 @@ function expandHomeDirectory($path) {
   return str_replace('~', realpath($homeDirectory), $path);
 }
 
+/**
+ * Prints a list of events.
+ * @param events to print.
+ */
+function printEvents($results) {
+	if (count($results->getItems()) == 0) {
+  		print "Niets gevonden.\n";
+	} else {
+  		foreach ($results->getItems() as $event) {
+    			$start = $event->start->dateTime;
+    			if (empty($start)) {
+      				$start = $event->start->date;
+    			}
+    			printf("%s %s\n", substr($start,0,10), $event->getSummary());
+  		}
+	}
+}
+
 // Get the API client and construct the service object.
 $client = getClient();
 $service = new Google_Service_Calendar($client);
-
-// Print the next 30 events on the user's calendar.
-$calendarId = 'primary';
-$calendarId = '4sm976uledkcg9id60sh0v599c@group.calendar.google.com'; // gidsen de Roos
 $optParams = array(
-  'maxResults' => 30,
+  'maxResults' => 10,
   'orderBy' => 'startTime',
   'singleEvents' => TRUE,
   'timeMin' => date('c'),
 );
-$results = $service->events->listEvents($calendarId, $optParams);
 
-if (count($results->getItems()) == 0) {
-  print "No upcoming events found.\n";
-} else {
-  print "Upcoming events:\n";
-  foreach ($results->getItems() as $event) {
-    $start = $event->start->dateTime;
-    if (empty($start)) {
-      $start = $event->start->date;
-    }
-    printf("%s %s\n", $start, $event->getSummary());
-  }
-}
+print "Molen:\n";
+printEvents($service->events->listEvents(CALENDAR_ID_MOLEN, $optParams));
+print "Gidsen:\n";
+printEvents($service->events->listEvents(CALENDAR_ID_GIDSEN, $optParams));
+print "Molenaars:\n";
+printEvents($service->events->listEvents(CALENDAR_ID_MOLENAARS, $optParams));
+
+$event = new Google_Service_Calendar_Event(array(
+  'summary' => 'php event',
+  'description' => 'php eventomschrijving.',
+  'start' => array(
+    'dateTime' => date('c'),
+  ),
+  'end' => array(
+    'dateTime' => date('c'),
+  ),
+));
+
+
+$event = $service->events->insert(CALENDAR_ID_MOLENAARS, $event);
+printf('Event aangemaakt: %s\n', $event->htmlLink);
+
